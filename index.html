@@ -61,7 +61,7 @@
     font-family:'Work Sans', system-ui, sans-serif;
     font-size:14px;
     padding:0 16px;
-    padding-block:0 100px;
+    padding-block:0 156px;
     display:flex;
     justify-content:center;
   }
@@ -212,6 +212,14 @@
   .finish-btn:hover{ filter:brightness(1.06); }
   .finish-btn:disabled{ opacity:0.5; cursor:not-allowed; }
 
+  .weekly-btn{
+    width:100%; background:transparent; color:var(--accent); border:1px solid var(--accent);
+    border-radius:13px; padding:10px; font-size:0.86rem; font-weight:600; font-family:'Work Sans', sans-serif;
+    cursor:pointer; margin-top:8px;
+  }
+  .weekly-btn:hover{ background:var(--accent-soft); }
+  .weekly-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
   /* ---- Modal ---- */
   .modal-overlay{
     position:fixed; inset:0; background:rgba(14,20,16,0.5); display:flex; align-items:center;
@@ -294,7 +302,8 @@
 
 <div class="footer">
   <div class="footer-inner">
-    <button class="finish-btn" id="finish-btn">Finalizar carga del día</button>
+    <button class="finish-btn" id="finish-day-btn">Finalizar carga del día</button>
+    <button class="weekly-btn" id="finish-week-btn">Finalizar carga semanal (enviar mail)</button>
   </div>
 </div>
 
@@ -668,33 +677,57 @@
   });
 
   // ============================================================
-  // Finalizar carga del día
+  // Finalizar carga del día — NO manda mail. Las comidas ya están
+  // guardadas (cada una se guarda al tocar "Agregar comida"); esto
+  // solo cierra la vista de hoy.
   // ============================================================
-  function showConfirm(){
+  function showDayConfirm(){
     if (entries.length === 0){
       setStatus('Todavía no cargaste ninguna comida hoy.', true);
       return;
     }
     modalContent.innerHTML =
-      '<div class="icon">📬</div>' +
-      '<h2>¿Cerrar la carga de hoy?</h2>' +
-      '<p>Se va a armar y enviar un mail con las ' + entries.length + ' comidas de hoy a <strong>' + DEST_EMAIL + '</strong>.</p>' +
+      '<div class="icon">🗓️</div>' +
+      '<h2>¿Diste por terminada la carga de hoy?</h2>' +
+      '<p>Las ' + entries.length + ' comidas de hoy ya están guardadas. Esto no manda ningún mail — para eso usá "Finalizar carga semanal" cuando quieras cerrar la semana.</p>' +
       '<div class="modal-actions">' +
-        '<button type="button" id="cancel-btn">Cancelar</button>' +
-        '<button type="button" class="confirm" id="confirm-btn">Sí, enviar</button>' +
+        '<button type="button" id="cancel-day-btn">Cancelar</button>' +
+        '<button type="button" class="confirm" id="confirm-day-btn">Sí, listo por hoy</button>' +
       '</div>';
     overlay.hidden = false;
-    document.getElementById('cancel-btn').addEventListener('click', closeModal);
-    document.getElementById('confirm-btn').addEventListener('click', doFinCarga);
+    document.getElementById('cancel-day-btn').addEventListener('click', closeModal);
+    document.getElementById('confirm-day-btn').addEventListener('click', function(){
+      closeModal();
+      entries = [];
+      render();
+    });
   }
 
-  function doFinCarga(){
+  // ============================================================
+  // Finalizar carga semanal — junta TODO lo que todavía no se envió
+  // (sin importar de qué día es) y manda un solo mail agrupado por día.
+  // ============================================================
+  function showWeekConfirm(){
+    modalContent.innerHTML =
+      '<div class="icon">📬</div>' +
+      '<h2>¿Cerrar la carga semanal?</h2>' +
+      '<p>Se va a armar y enviar un mail con todo lo que todavía no se envió (de todos los días pendientes) a <strong>' + DEST_EMAIL + '</strong>.</p>' +
+      '<div class="modal-actions">' +
+        '<button type="button" id="cancel-week-btn">Cancelar</button>' +
+        '<button type="button" class="confirm" id="confirm-week-btn">Sí, enviar</button>' +
+      '</div>';
+    overlay.hidden = false;
+    document.getElementById('cancel-week-btn').addEventListener('click', closeModal);
+    document.getElementById('confirm-week-btn').addEventListener('click', doFinCargaSemanal);
+  }
+
+  function doFinCargaSemanal(){
     modalContent.innerHTML = '<div class="spinner" role="status" aria-label="Enviando"></div><h2>Enviando mail...</h2><p>Un momento.</p>';
 
-    function success(){
+    function success(msg){
       modalContent.innerHTML =
         '<div class="icon">✅</div><h2>¡Listo!</h2>' +
-        '<p>Mail enviado a <strong>' + DEST_EMAIL + '</strong> con el registro de hoy.</p>' +
+        '<p>' + msg + '</p>' +
         '<div class="modal-actions"><button type="button" class="confirm" id="close-success">Cerrar</button></div>';
       document.getElementById('close-success').addEventListener('click', function(){
         closeModal();
@@ -710,14 +743,23 @@
       document.getElementById('close-fail').addEventListener('click', closeModal);
     }
 
-    if (DEMO_MODE){ setTimeout(success, 1000); return; }
-    apiPost('finCarga', { date: todayISO }).then(function(res){
-      if (res.ok) success(); else failure(res.error || 'Error desconocido.');
+    if (DEMO_MODE){
+      setTimeout(function(){ success('Mail enviado a <strong>' + DEST_EMAIL + '</strong> con el registro pendiente.'); }, 1000);
+      return;
+    }
+    apiPost('finCargaSemanal', {}).then(function(res){
+      if (res.ok){
+        var rango = res.desde === res.hasta ? res.desde : (res.desde + ' al ' + res.hasta);
+        success('Mail enviado a <strong>' + DEST_EMAIL + '</strong> con ' + res.count + ' comida(s), del ' + rango + '.');
+      } else {
+        failure(res.error || 'Error desconocido.');
+      }
     }).catch(function(){ failure('Sin conexión con el servidor.'); });
   }
 
   function closeModal(){ overlay.hidden = true; }
-  document.getElementById('finish-btn').addEventListener('click', showConfirm);
+  document.getElementById('finish-day-btn').addEventListener('click', showDayConfirm);
+  document.getElementById('finish-week-btn').addEventListener('click', showWeekConfirm);
 
   loadToday();
 })();
