@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro Comidas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+
+  :root{
+    --bg:#F5F8F5;
+    --surface:#FFFFFF;
+    --ink:#1E2A22;
+    --ink-soft:#5C6E62;
+    --accent:#2F7A5B;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#E1EFE6;
+    --gold:#C6863B;
+    --gold-soft:#F5E7D2;
+    --danger:#C25B45;
+    --danger-soft:#F6E4DE;
+    --line:#DEE6DF;
+    --success:#2F7A5B;
+    --success-soft:#E1EFE6;
+    --shadow: 0 1px 2px rgba(30,42,34,0.06), 0 8px 20px -12px rgba(30,42,34,0.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141A16;
+      --surface:#1D251F;
+      --ink:#EDF3EE;
+      --ink-soft:#9DAEA3;
+      --accent:#5FBE93;
+      --accent-ink:#0E1F16;
+      --accent-soft:#203A2B;
+      --gold:#E0AE68;
+      --gold-soft:#3A2F1C;
+      --danger:#E08A73;
+      --danger-soft:#3A2620;
+      --line:#2B352E;
+      --success:#5FBE93;
+      --success-soft:#203A2B;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141A16; --surface:#1D251F; --ink:#EDF3EE; --ink-soft:#9DAEA3;
+    --accent:#5FBE93; --accent-ink:#0E1F16; --accent-soft:#203A2B;
+    --gold:#E0AE68; --gold-soft:#3A2F1C; --danger:#E08A73; --danger-soft:#3A2620;
+    --line:#2B352E; --success:#5FBE93; --success-soft:#203A2B;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  img{max-width:100%;}
+  [hidden]{display:none!important;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Work Sans', system-ui, sans-serif;
+    font-size:14px;
+    padding:0 16px;
+    padding-block:0 100px;
+    display:flex;
+    justify-content:center;
+  }
+  .app{ width:100%; max-width:480px; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ---- Header ---- */
+  .header{ padding-block:24px 14px; display:flex; flex-direction:column; gap:5px; }
+  .brand{ display:flex; align-items:center; gap:8px; }
+  .brand .mark{
+    width:34px; height:34px; border-radius:10px; background:var(--accent-soft);
+    display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0;
+  }
+  .brand h1{ font-family:'Sora', sans-serif; font-weight:700; font-size:1.35rem; margin:0; letter-spacing:-0.01em; }
+  .subrow{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .subdate{ color:var(--ink-soft); font-size:0.9rem; }
+  .count-pill{
+    background:var(--gold-soft); color:var(--gold); border-radius:999px; padding:3px 11px;
+    font-size:0.76rem; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .setup-banner{
+    background:var(--danger-soft); border:1px solid var(--danger); color:var(--danger);
+    border-radius:10px; padding:10px 12px; font-size:0.8rem; line-height:1.4; margin-top:8px;
+  }
+  .setup-banner code{ font-family:'IBM Plex Mono', monospace; font-size:0.75rem; }
+  .status-line{
+    font-size:0.78rem; color:var(--ink-soft); margin-top:6px; min-height:1em;
+  }
+  .status-line.error{ color:var(--danger); }
+
+  /* ---- Entries list ---- */
+  .entries{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .entry{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px;
+    display:flex; gap:12px; align-items:flex-start; box-shadow:var(--shadow); animation:rise 0.28s ease both;
+  }
+  @keyframes rise{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .entry.leaving{ animation:fall 0.2s ease both; }
+  @keyframes fall{ to{opacity:0; transform:translateY(-4px) scale(0.98);} }
+  .entry .time{
+    font-family:'IBM Plex Mono', monospace; font-size:0.76rem; color:var(--ink-soft);
+    min-width:2.6rem; padding-top:3px; font-variant-numeric:tabular-nums;
+  }
+  .entry .thumb{ width:44px; height:44px; border-radius:10px; object-fit:cover; flex-shrink:0; border:1px solid var(--line); }
+  .entry .body{ flex:1; min-width:0; }
+  .entry .badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:600; color:var(--accent);
+    background:var(--accent-soft); border-radius:999px; padding:2px 9px; margin-bottom:4px;
+  }
+  .entry .detail{ font-size:0.9rem; line-height:1.4; word-break:break-word; }
+  .entry .del{
+    background:none; border:none; color:var(--ink-soft); font-size:1rem; cursor:pointer;
+    padding:2px 4px; line-height:1; border-radius:6px; flex-shrink:0;
+  }
+  .entry .del:hover{ color:var(--danger); background:var(--danger-soft); }
+  .entry .del:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--accent); outline-offset:1px;
+  }
+  .empty-state{
+    text-align:center; color:var(--ink-soft); font-size:0.88rem; padding:26px 12px;
+    border:1px dashed var(--line); border-radius:14px;
+  }
+
+  /* ---- Form ---- */
+  .form-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px;
+    margin-top:18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px;
+  }
+  .form-title{ font-family:'Sora', sans-serif; font-size:1.02rem; font-weight:700; margin:0 0 2px 0; }
+  .row{ display:flex; gap:10px; }
+  label.field-label{
+    font-size:0.72rem; font-weight:600; color:var(--ink-soft); text-transform:uppercase;
+    letter-spacing:0.04em; display:block; margin-bottom:5px;
+  }
+  input[type="time"], textarea{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:9px 11px; font-family:'Work Sans', sans-serif; font-size:0.9rem; color:var(--ink);
+  }
+  input[type="time"]{ font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums; }
+  textarea{ resize:vertical; min-height:56px; line-height:1.4; font-size:0.92rem; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:7px; }
+  .chip{
+    border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:999px;
+    padding:6px 13px; font-size:0.82rem; cursor:pointer; transition:background 0.12s,color 0.12s,border-color 0.12s;
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .chip.selected{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+
+  .photo-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .photo-btn{
+    display:flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--line);
+    border-radius:10px; padding:8px 12px; font-size:0.84rem; color:var(--ink); cursor:pointer;
+  }
+  .photo-preview{ display:flex; align-items:center; gap:8px; }
+  .photo-preview img{ width:44px; height:44px; border-radius:8px; object-fit:cover; border:1px solid var(--line); }
+  .photo-preview button{ background:none; border:none; color:var(--ink-soft); font-size:0.84rem; cursor:pointer; }
+  #photo-input{ display:none; }
+
+  .add-btn{
+    background:var(--ink); color:var(--bg); border:none; border-radius:11px; padding:11px;
+    font-size:0.94rem; font-weight:700; cursor:pointer; font-family:'Work Sans', sans-serif;
+  }
+  .add-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .add-btn:not(:disabled):hover{ background:var(--accent); }
+
+  /* ---- Camera panel ---- */
+  .camera-panel{
+    position:fixed; inset:0; background:#000; z-index:20; display:flex; flex-direction:column;
+  }
+  .camera-panel video{ flex:1; width:100%; object-fit:cover; background:#000; }
+  .camera-controls{
+    display:flex; align-items:center; justify-content:center; gap:28px;
+    padding:20px; padding-bottom:calc(20px + env(safe-area-inset-bottom)); background:#000;
+  }
+  .camera-controls button{
+    border:none; cursor:pointer; font-family:'Work Sans', sans-serif;
+  }
+  .shutter{
+    width:64px; height:64px; border-radius:50%; background:#fff; border:4px solid #cfcfcf;
+  }
+  .camera-cancel, .camera-flip{
+    width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.15); color:#fff; font-size:1.1rem;
+  }
+  .camera-error{
+    color:#fff; text-align:center; padding:16px; font-size:0.85rem;
+  }
+
+  /* ---- Footer ---- */
+  .footer{
+    position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:center;
+    padding:14px 16px; padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, var(--bg) 65%, transparent);
+  }
+  .footer-inner{ width:100%; max-width:480px; }
+  .finish-btn{
+    width:100%; background:var(--accent); color:var(--accent-ink); border:none; border-radius:13px;
+    padding:14px; font-size:1rem; font-weight:700; font-family:'Work Sans', sans-serif; cursor:pointer;
+    box-shadow:0 6px 18px -6px rgba(47,122,91,0.5); letter-spacing:0.01em;
+  }
+  .finish-btn:hover{ filter:brightness(1.06); }
+  .finish-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  /* ---- Modal ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(14,20,16,0.5); display:flex; align-items:center;
+    justify-content:center; padding:16px; z-index:10;
+  }
+  .modal{
+    background:var(--surface); border-radius:18px; padding:24px; max-width:360px; width:100%;
+    text-align:center; box-shadow:var(--shadow);
+  }
+  .modal .icon{ font-size:2rem; margin-bottom:8px; }
+  .modal h2{ font-family:'Sora', sans-serif; font-size:1.15rem; margin:0 0 6px 0; }
+  .modal p{ color:var(--ink-soft); font-size:0.88rem; line-height:1.5; margin:0 0 18px 0; }
+  .modal-actions{ display:flex; gap:10px; }
+  .modal-actions button{
+    flex:1; border-radius:10px; padding:10px; font-size:0.88rem; font-weight:600; cursor:pointer;
+    font-family:'Work Sans', sans-serif; border:1px solid var(--line); background:var(--bg); color:var(--ink);
+  }
+  .modal-actions button.confirm{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .spinner{
+    width:28px; height:28px; border:3px solid var(--line); border-top-color:var(--accent);
+    border-radius:50%; margin:4px auto 14px; animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="brand"><span class="mark">🥗</span><h1>Registro Comidas</h1></div>
+    <div class="subrow">
+      <span class="subdate" id="date-text">—</span>
+      <span class="count-pill" id="count-pill">0 cargadas</span>
+    </div>
+    <div class="setup-banner" id="setup-banner" hidden></div>
+    <div class="status-line" id="status-line"></div>
+  </div>
+
+  <div class="entries" id="entries"></div>
+  <div class="empty-state" id="empty-state" hidden>Todavía no cargaste ninguna comida hoy.</div>
+
+  <form class="form-card" id="entry-form">
+    <p class="form-title">Agregar comida</p>
+
+    <div class="row">
+      <div style="width:120px">
+        <label class="field-label" for="time-input">Hora</label>
+        <input type="time" id="time-input" required>
+      </div>
+      <div style="flex:1">
+        <label class="field-label" id="chips-label">Tipo</label>
+        <div class="chips" id="chips" role="group" aria-labelledby="chips-label">
+          <button type="button" class="chip" data-meal="Desayuno">☕ Desayuno</button>
+          <button type="button" class="chip" data-meal="Colación Mañana">🍎 Col. Mañana</button>
+          <button type="button" class="chip" data-meal="Almuerzo">🍽️ Almuerzo</button>
+          <button type="button" class="chip" data-meal="Colación Tarde">🥐 Col. Tarde</button>
+          <button type="button" class="chip" data-meal="Merienda">🫖 Merienda</button>
+          <button type="button" class="chip" data-meal="Cena">🍲 Cena</button>
+          <button type="button" class="chip" data-meal="Otro">🍴 Otro</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="field-label" for="detail-input">Detalle</label>
+      <textarea id="detail-input" placeholder="Qué comiste..." required></textarea>
+    </div>
+
+    <div class="photo-actions" id="photo-actions">
+      <button type="button" class="photo-btn" id="camera-btn">📷 Usar cámara</button>
+      <button type="button" class="photo-btn" id="gallery-btn">🖼️ Elegir de galería</button>
+      <input type="file" id="photo-input" accept="image/*">
+    </div>
+    <div id="photo-preview-slot"></div>
+
+    <button type="submit" class="add-btn" id="add-btn" disabled>Agregar comida</button>
+  </form>
+</div>
+
+<div class="footer">
+  <div class="footer-inner">
+    <button class="finish-btn" id="finish-btn">Finalizar carga del día</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" hidden>
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<div class="camera-panel" id="camera-panel" hidden>
+  <video id="camera-video" autoplay playsinline muted></video>
+  <div class="camera-controls">
+    <button type="button" class="camera-cancel" id="camera-cancel" aria-label="Cancelar">✕</button>
+    <button type="button" class="shutter" id="camera-shutter" aria-label="Tomar foto"></button>
+    <button type="button" class="camera-flip" id="camera-flip" aria-label="Cambiar cámara">🔄</button>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ============================================================
+  // CONFIGURACIÓN — completá esto después de desplegar el Apps Script
+  // ============================================================
+  var CONFIG = {
+    SCRIPT_URL: '', // ej: 'https://script.google.com/macros/s/AKfycb.../exec'
+    TOKEN: ''       // la misma clave secreta que pusiste en Code.gs (var TOKEN)
+  };
+  var DEST_EMAIL = 'hernangramirez79@gmail.com';
+  var DEMO_MODE = !CONFIG.SCRIPT_URL;
+
+  var MEAL_ORDER = ['Desayuno','Colación Mañana','Almuerzo','Colación Tarde','Merienda','Cena','Otro'];
+
+  // ---- estado ----
+  var todayISO = new Date().toISOString().slice(0,10);
+  var entries = [];
+  var selectedMeal = null;
+  var pendingPhoto = null; // dataURL
+  var currentStream = null;
+  var facingMode = 'environment';
+
+  // ---- helpers de DOM ----
+  var entriesEl = document.getElementById('entries');
+  var emptyEl = document.getElementById('empty-state');
+  var countPill = document.getElementById('count-pill');
+  var statusLine = document.getElementById('status-line');
+  var setupBanner = document.getElementById('setup-banner');
+  var timeInput = document.getElementById('time-input');
+  var detailInput = document.getElementById('detail-input');
+  var addBtn = document.getElementById('add-btn');
+  var chips = document.querySelectorAll('.chip');
+  var photoInput = document.getElementById('photo-input');
+  var photoSlot = document.getElementById('photo-preview-slot');
+  var overlay = document.getElementById('modal-overlay');
+  var modalContent = document.getElementById('modal-content');
+  var cameraPanel = document.getElementById('camera-panel');
+  var cameraVideo = document.getElementById('camera-video');
+
+  var dateLabel = new Intl.DateTimeFormat('es-AR', { weekday:'long', day:'numeric', month:'long' }).format(new Date());
+  document.getElementById('date-text').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+
+  if (DEMO_MODE){
+    setupBanner.hidden = false;
+    setupBanner.innerHTML = 'Modo demo: todavía no configuraste <code>CONFIG.SCRIPT_URL</code> arriba en el código. ' +
+      'Los datos no se guardan de verdad hasta que despliegues el Apps Script y completes la configuración (ver README).';
+    entries = [
+      { id:'demo-1', time:'08:10', meal:'Desayuno', detail:'Café con tostadas y queso fresco', photoUrl:null },
+      { id:'demo-2', time:'13:30', meal:'Almuerzo', detail:'Sándwich de milanesa (pan tostado)', photoUrl:null }
+    ];
+  }
+
+  function setStatus(msg, isError){
+    statusLine.textContent = msg || '';
+    statusLine.classList.toggle('error', !!isError);
+  }
+
+  function fmtCount(n){ return n + (n === 1 ? ' cargada' : ' cargadas'); }
+
+  function mealIcon(meal){
+    var map = { 'Desayuno':'☕','Colación Mañana':'🍎','Almuerzo':'🍽️','Colación Tarde':'🥐','Merienda':'🫖','Cena':'🍲','Otro':'🍴' };
+    return map[meal] || '🍴';
+  }
+
+  function render(){
+    entriesEl.innerHTML = '';
+    if (entries.length === 0){
+      emptyEl.hidden = false;
+    } else {
+      emptyEl.hidden = true;
+      entries.forEach(function(e){
+        var card = document.createElement('div');
+        card.className = 'entry';
+        card.dataset.id = e.id;
+        var photoHtml = e.photoUrl ? '<img class="thumb" src="' + e.photoUrl + '" alt="Foto">' : '';
+        card.innerHTML =
+          '<div class="time">' + e.time + '</div>' +
+          photoHtml +
+          '<div class="body"><span class="badge">' + mealIcon(e.meal) + ' ' + e.meal + '</span><div class="detail"></div></div>' +
+          '<button type="button" class="del" aria-label="Borrar comida">✕</button>';
+        card.querySelector('.detail').textContent = e.detail;
+        card.querySelector('.del').addEventListener('click', function(){ removeEntry(e.id); });
+        entriesEl.appendChild(card);
+      });
+    }
+    countPill.textContent = fmtCount(entries.length);
+  }
+
+  // ============================================================
+  // Llamadas al backend (Apps Script)
+  // ============================================================
+  function apiGet(action, params){
+    var url = new URL(CONFIG.SCRIPT_URL);
+    url.searchParams.set('action', action);
+    url.searchParams.set('token', CONFIG.TOKEN);
+    Object.keys(params || {}).forEach(function(k){ url.searchParams.set(k, params[k]); });
+    return fetch(url.toString()).then(function(r){ return r.json(); });
+  }
+
+  function apiPost(action, data){
+    var payload = Object.assign({ action: action, token: CONFIG.TOKEN }, data || {});
+    return fetch(CONFIG.SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita el preflight CORS de Apps Script
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); });
+  }
+
+  function loadToday(){
+    if (DEMO_MODE){ render(); return; }
+    setStatus('Cargando lo de hoy...');
+    apiGet('getEntries', { date: todayISO }).then(function(res){
+      if (res.ok){
+        entries = res.entries || [];
+        entries.sort(function(a,b){ return String(a.time).localeCompare(String(b.time)); });
+        render();
+        setStatus('');
+      } else {
+        setStatus('No se pudo cargar el registro de hoy: ' + res.error, true);
+      }
+    }).catch(function(err){
+      setStatus('No se pudo conectar con el servidor. Revisá CONFIG.SCRIPT_URL.', true);
+    });
+  }
+
+  function removeEntry(id){
+    var card = entriesEl.querySelector('[data-id="' + id + '"]');
+    function localRemove(){
+      entries = entries.filter(function(e){ return e.id !== id; });
+      render();
+    }
+    if (card) card.classList.add('leaving');
+    if (DEMO_MODE){ setTimeout(localRemove, 180); return; }
+    setStatus('Borrando...');
+    apiPost('deleteEntry', { id: id }).then(function(res){
+      if (res.ok){ setTimeout(localRemove, 180); setStatus(''); }
+      else setStatus('No se pudo borrar: ' + res.error, true);
+    }).catch(function(){ setStatus('No se pudo borrar (sin conexión).', true); });
+  }
+
+  // ---- hora por defecto ----
+  function setNowTime(){
+    var n = new Date();
+    timeInput.value = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+  }
+  setNowTime();
+
+  // ---- chips tipo de comida ----
+  function checkFormValid(){
+    addBtn.disabled = !(selectedMeal && detailInput.value.trim().length > 0);
+  }
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      chips.forEach(function(c){ c.classList.remove('selected'); });
+      chip.classList.add('selected');
+      selectedMeal = chip.dataset.meal;
+      checkFormValid();
+    });
+  });
+  detailInput.addEventListener('input', checkFormValid);
+
+  // ============================================================
+  // Foto: cámara en vivo (getUserMedia) + galería de respaldo
+  // ============================================================
+  function resizeDataUrl(sourceCanvas, maxDim, cb){
+    var w = sourceCanvas.width, h = sourceCanvas.height;
+    var scale = Math.min(1, maxDim / Math.max(w, h));
+    var out = document.createElement('canvas');
+    out.width = Math.round(w * scale);
+    out.height = Math.round(h * scale);
+    out.getContext('2d').drawImage(sourceCanvas, 0, 0, out.width, out.height);
+    cb(out.toDataURL('image/jpeg', 0.75));
+  }
+
+  function showPhotoPreview(dataUrl){
+    pendingPhoto = dataUrl;
+    photoSlot.innerHTML = '<div class="photo-preview"><img src="' + dataUrl + '" alt="Vista previa"><button type="button" id="remove-photo">Quitar foto</button></div>';
+    document.getElementById('remove-photo').addEventListener('click', function(){
+      pendingPhoto = null;
+      photoSlot.innerHTML = '';
+      photoInput.value = '';
+    });
+  }
+
+  // -- galería / archivo --
+  document.getElementById('gallery-btn').addEventListener('click', function(){ photoInput.click(); });
+  photoInput.addEventListener('change', function(){
+    var file = photoInput.files[0];
+    if (!file) return;
+    var img = new Image();
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      img.onload = function(){
+        var c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resizeDataUrl(c, 1000, showPhotoPreview);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // -- cámara en vivo --
+  function openCamera(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      photoInput.click(); // el navegador no soporta cámara en vivo: uso el picker nativo
+      return;
+    }
+    cameraPanel.hidden = false;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false })
+      .then(function(stream){
+        currentStream = stream;
+        cameraVideo.srcObject = stream;
+      })
+      .catch(function(){
+        cameraPanel.hidden = true;
+        photoInput.click(); // permiso denegado o sin cámara: uso el picker nativo (que en el celular también ofrece la cámara)
+      });
+  }
+
+  function stopCamera(){
+    if (currentStream){
+      currentStream.getTracks().forEach(function(t){ t.stop(); });
+      currentStream = null;
+    }
+    cameraPanel.hidden = true;
+  }
+
+  document.getElementById('camera-btn').addEventListener('click', openCamera);
+  document.getElementById('camera-cancel').addEventListener('click', stopCamera);
+  document.getElementById('camera-flip').addEventListener('click', function(){
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    stopCamera();
+    openCamera();
+  });
+  document.getElementById('camera-shutter').addEventListener('click', function(){
+    var c = document.createElement('canvas');
+    c.width = cameraVideo.videoWidth;
+    c.height = cameraVideo.videoHeight;
+    c.getContext('2d').drawImage(cameraVideo, 0, 0);
+    resizeDataUrl(c, 1000, function(dataUrl){
+      stopCamera();
+      showPhotoPreview(dataUrl);
+    });
+  });
+
+  // ============================================================
+  // Agregar comida
+  // ============================================================
+  document.getElementById('entry-form').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    if (!selectedMeal || !detailInput.value.trim()) return;
+
+    var newEntry = {
+      time: timeInput.value,
+      meal: selectedMeal,
+      detail: detailInput.value.trim()
+    };
+
+    function resetForm(){
+      detailInput.value = '';
+      chips.forEach(function(c){ c.classList.remove('selected'); });
+      selectedMeal = null;
+      pendingPhoto = null;
+      photoInput.value = '';
+      photoSlot.innerHTML = '';
+      checkFormValid();
+      setNowTime();
+    }
+
+    if (DEMO_MODE){
+      newEntry.id = 'demo-' + Date.now();
+      newEntry.photoUrl = pendingPhoto;
+      entries.push(newEntry);
+      entries.sort(function(a,b){ return a.time.localeCompare(b.time); });
+      render();
+      resetForm();
+      return;
+    }
+
+    addBtn.disabled = true;
+    setStatus('Guardando...');
+    var photoBase64 = pendingPhoto;
+    apiPost('addEntry', {
+      date: todayISO,
+      time: newEntry.time,
+      meal: newEntry.meal,
+      detail: newEntry.detail,
+      photoBase64: photoBase64,
+      photoMime: 'image/jpeg'
+    }).then(function(res){
+      if (res.ok){
+        newEntry.id = res.id;
+        newEntry.photoUrl = res.photoUrl || null;
+        entries.push(newEntry);
+        entries.sort(function(a,b){ return a.time.localeCompare(b.time); });
+        render();
+        resetForm();
+        setStatus('');
+      } else {
+        setStatus('No se pudo guardar: ' + res.error, true);
+        checkFormValid();
+      }
+    }).catch(function(){
+      setStatus('No se pudo guardar (sin conexión).', true);
+      checkFormValid();
+    });
+  });
+
+  // ============================================================
+  // Finalizar carga del día
+  // ============================================================
+  function showConfirm(){
+    if (entries.length === 0){
+      setStatus('Todavía no cargaste ninguna comida hoy.', true);
+      return;
+    }
+    modalContent.innerHTML =
+      '<div class="icon">📬</div>' +
+      '<h2>¿Cerrar la carga de hoy?</h2>' +
+      '<p>Se va a armar y enviar un mail con las ' + entries.length + ' comidas de hoy a <strong>' + DEST_EMAIL + '</strong>.</p>' +
+      '<div class="modal-actions">' +
+        '<button type="button" id="cancel-btn">Cancelar</button>' +
+        '<button type="button" class="confirm" id="confirm-btn">Sí, enviar</button>' +
+      '</div>';
+    overlay.hidden = false;
+    document.getElementById('cancel-btn').addEventListener('click', closeModal);
+    document.getElementById('confirm-btn').addEventListener('click', doFinCarga);
+  }
+
+  function doFinCarga(){
+    modalContent.innerHTML = '<div class="spinner" role="status" aria-label="Enviando"></div><h2>Enviando mail...</h2><p>Un momento.</p>';
+
+    function success(){
+      modalContent.innerHTML =
+        '<div class="icon">✅</div><h2>¡Listo!</h2>' +
+        '<p>Mail enviado a <strong>' + DEST_EMAIL + '</strong> con el registro de hoy.</p>' +
+        '<div class="modal-actions"><button type="button" class="confirm" id="close-success">Cerrar</button></div>';
+      document.getElementById('close-success').addEventListener('click', function(){
+        closeModal();
+        entries = [];
+        render();
+      });
+    }
+    function failure(msg){
+      modalContent.innerHTML =
+        '<div class="icon">⚠️</div><h2>No se pudo enviar</h2>' +
+        '<p>' + msg + '</p>' +
+        '<div class="modal-actions"><button type="button" class="confirm" id="close-fail">Cerrar</button></div>';
+      document.getElementById('close-fail').addEventListener('click', closeModal);
+    }
+
+    if (DEMO_MODE){ setTimeout(success, 1000); return; }
+    apiPost('finCarga', { date: todayISO }).then(function(res){
+      if (res.ok) success(); else failure(res.error || 'Error desconocido.');
+    }).catch(function(){ failure('Sin conexión con el servidor.'); });
+  }
+
+  function closeModal(){ overlay.hidden = true; }
+  document.getElementById('finish-btn').addEventListener('click', showConfirm);
+
+  loadToday();
+})();
+</script>
+</body>
+</html>
