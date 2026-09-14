@@ -149,6 +149,14 @@
     display:inline-flex; align-items:center; gap:5px;
   }
   .chip.selected{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .chip.used{
+    opacity:0.55; cursor:not-allowed; text-decoration:line-through; text-decoration-color:var(--ink-soft);
+  }
+  .chip[hidden]{ display:none!important; }
+  .show-all-link{
+    background:none; border:none; color:var(--ink-soft); font-size:0.76rem; text-decoration:underline;
+    cursor:pointer; padding:2px 0; margin-top:2px; font-family:'Work Sans', sans-serif;
+  }
 
   .photo-actions{ display:flex; gap:8px; flex-wrap:wrap; }
   .photo-btn{
@@ -264,6 +272,7 @@
           <button type="button" class="chip" data-meal="Cena">🍲 Cena</button>
           <button type="button" class="chip" data-meal="Otro">🍴 Otro</button>
         </div>
+        <button type="button" class="show-all-link" id="show-all-link" hidden>Mostrar todos los tipos</button>
       </div>
     </div>
 
@@ -389,7 +398,52 @@
       });
     }
     countPill.textContent = fmtCount(entries.length);
+    updateChipAvailability();
   }
+
+  // ============================================================
+  // Chips: se van desactivando a medida que se cargan, y los que
+  // quedaron salteados (más tempranos que la última comida cargada)
+  // desaparecen — "Otro" siempre queda disponible.
+  // ============================================================
+  var showAllChips = false;
+  var showAllLink = document.getElementById('show-all-link');
+
+  function updateChipAvailability(){
+    var usedMeals = {};
+    var maxIndex = -1;
+    entries.forEach(function(e){
+      usedMeals[e.meal] = true;
+      var idx = MEAL_ORDER.indexOf(e.meal);
+      if (idx > maxIndex) maxIndex = idx;
+    });
+
+    var anyHidden = false;
+    chips.forEach(function(chip){
+      var meal = chip.dataset.meal;
+      var idx = MEAL_ORDER.indexOf(meal);
+      var isUsed = !!usedMeals[meal];
+
+      chip.classList.toggle('used', isUsed);
+      chip.disabled = isUsed;
+
+      if (meal === 'Otro' || showAllChips){
+        chip.hidden = false;
+        return;
+      }
+      var skipped = !isUsed && idx !== -1 && idx < maxIndex;
+      if (skipped) anyHidden = true;
+      chip.hidden = skipped;
+    });
+
+    showAllLink.hidden = !anyHidden && !showAllChips;
+    showAllLink.textContent = showAllChips ? 'Ocultar los que salteaste' : 'Mostrar todos los tipos';
+  }
+
+  showAllLink.addEventListener('click', function(){
+    showAllChips = !showAllChips;
+    updateChipAvailability();
+  });
 
   // ============================================================
   // Llamadas al backend (Apps Script)
