@@ -359,7 +359,19 @@
   var MEAL_ORDER = ['Desayuno','Colación Mañana','Almuerzo','Colación Tarde','Merienda','Cena','Otro'];
 
   // ---- estado ----
-  var todayISO = new Date().toISOString().slice(0,10);
+  // OJO: no usar toISOString() acá — devuelve la fecha en UTC, y como
+  // Argentina está 3hs atrás, entre las 21:00 y las 23:59 (hora local)
+  // ya cuenta como "mañana" en UTC y todo lo cargado en ese rato queda
+  // guardado con la fecha del día siguiente. Se arma la fecha a mano
+  // con los componentes locales del dispositivo.
+  function localISODate(d){
+    d = d || new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+  var todayISO = localISODate();
   var entries = [];
   var selectedMeal = null;
   var pendingPhoto = null; // dataURL
