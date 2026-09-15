@@ -81,6 +81,16 @@
     background:var(--gold-soft); color:var(--gold); border-radius:999px; padding:3px 11px;
     font-size:0.76rem; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
   }
+  .date-nav{ display:flex; align-items:center; gap:12px; margin-top:2px; flex-wrap:wrap; }
+  .date-link{
+    background:none; border:none; color:var(--accent); font-size:0.8rem; font-weight:600;
+    cursor:pointer; padding:2px 0; font-family:'Work Sans', sans-serif;
+  }
+  .date-link:hover{ text-decoration:underline; }
+  #date-picker{
+    font-family:'IBM Plex Mono', monospace; font-size:0.8rem; border:1px solid var(--line);
+    border-radius:8px; padding:4px 8px; background:var(--surface); color:var(--ink);
+  }
   .setup-banner{
     background:var(--danger-soft); border:1px solid var(--danger); color:var(--danger);
     border-radius:10px; padding:10px 12px; font-size:0.8rem; line-height:1.4; margin-top:8px;
@@ -111,12 +121,14 @@
     background:var(--accent-soft); border-radius:999px; padding:2px 9px; margin-bottom:4px;
   }
   .entry .detail{ font-size:0.9rem; line-height:1.4; word-break:break-word; }
-  .entry .del{
-    background:none; border:none; color:var(--ink-soft); font-size:1rem; cursor:pointer;
-    padding:2px 4px; line-height:1; border-radius:6px; flex-shrink:0;
+  .entry .actions{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+  .entry .del, .entry .edit-entry{
+    background:none; border:none; color:var(--ink-soft); font-size:0.95rem; cursor:pointer;
+    padding:2px 4px; line-height:1; border-radius:6px;
   }
   .entry .del:hover{ color:var(--danger); background:var(--danger-soft); }
-  .entry .del:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+  .entry .edit-entry:hover{ color:var(--accent); background:var(--accent-soft); }
+  .entry .del:focus-visible, .entry .edit-entry:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible{
     outline:2px solid var(--accent); outline-offset:1px;
   }
   .empty-state{
@@ -238,6 +250,12 @@
     font-family:'Work Sans', sans-serif; border:1px solid var(--line); background:var(--bg); color:var(--ink);
   }
   .modal-actions button.confirm{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .edit-form{ display:flex; flex-direction:column; gap:12px; text-align:left; margin-bottom:18px; }
+  .edit-form select{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:9px 11px; font-family:'Work Sans', sans-serif; font-size:0.9rem; color:var(--ink);
+  }
+  .edit-form input[type="time"]{ width:100%; }
   .spinner{
     width:28px; height:28px; border:3px solid var(--line); border-top-color:var(--accent);
     border-radius:50%; margin:4px auto 14px; animation:spin 0.7s linear infinite;
@@ -253,6 +271,11 @@
     <div class="subrow">
       <span class="subdate" id="date-text">—</span>
       <span class="count-pill" id="count-pill">0 cargadas</span>
+    </div>
+    <div class="date-nav" id="date-nav">
+      <button type="button" class="date-link" id="change-date-btn">📅 Editar otro día</button>
+      <input type="date" id="date-picker" hidden>
+      <button type="button" class="date-link" id="back-today-btn" hidden>↩️ Volver a hoy</button>
     </div>
     <div class="setup-banner" id="setup-banner" hidden></div>
     <div class="status-line" id="status-line"></div>
@@ -359,9 +382,43 @@
   var modalContent = document.getElementById('modal-content');
   var cameraPanel = document.getElementById('camera-panel');
   var cameraVideo = document.getElementById('camera-video');
+  var dateTextEl = document.getElementById('date-text');
+  var changeDateBtn = document.getElementById('change-date-btn');
+  var datePicker = document.getElementById('date-picker');
+  var backTodayBtn = document.getElementById('back-today-btn');
 
-  var dateLabel = new Intl.DateTimeFormat('es-AR', { weekday:'long', day:'numeric', month:'long' }).format(new Date());
-  document.getElementById('date-text').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+  // ---- ver / editar otro día ----
+  var viewingDate = todayISO;
+
+  function updateDateLabel(){
+    var d = new Date(viewingDate + 'T00:00:00');
+    var label = new Intl.DateTimeFormat('es-AR', { weekday:'long', day:'numeric', month:'long' }).format(d);
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    if (viewingDate !== todayISO) label = '✏️ Editando: ' + label;
+    dateTextEl.textContent = label;
+    backTodayBtn.hidden = (viewingDate === todayISO);
+  }
+  updateDateLabel();
+
+  changeDateBtn.addEventListener('click', function(){
+    datePicker.hidden = false;
+    datePicker.value = viewingDate;
+    datePicker.max = todayISO;
+    datePicker.focus();
+    if (datePicker.showPicker) { try { datePicker.showPicker(); } catch(e){} }
+  });
+  datePicker.addEventListener('change', function(){
+    if (!datePicker.value) return;
+    datePicker.hidden = true;
+    viewingDate = datePicker.value;
+    updateDateLabel();
+    loadDate(viewingDate);
+  });
+  backTodayBtn.addEventListener('click', function(){
+    viewingDate = todayISO;
+    updateDateLabel();
+    loadDate(viewingDate);
+  });
 
   if (DEMO_MODE){
     setupBanner.hidden = false;
@@ -400,8 +457,12 @@
           '<div class="time">' + e.time + '</div>' +
           photoHtml +
           '<div class="body"><span class="badge">' + mealIcon(e.meal) + ' ' + e.meal + '</span><div class="detail"></div></div>' +
-          '<button type="button" class="del" aria-label="Borrar comida">✕</button>';
+          '<div class="actions">' +
+            '<button type="button" class="edit-entry" aria-label="Editar comida">✏️</button>' +
+            '<button type="button" class="del" aria-label="Borrar comida">✕</button>' +
+          '</div>';
         card.querySelector('.detail').textContent = e.detail;
+        card.querySelector('.edit-entry').addEventListener('click', function(){ openEditModal(e); });
         card.querySelector('.del').addEventListener('click', function(){ removeEntry(e.id); });
         entriesEl.appendChild(card);
       });
@@ -474,17 +535,18 @@
     }).then(function(r){ return r.json(); });
   }
 
-  function loadToday(){
+  function loadDate(date){
     if (DEMO_MODE){ render(); return; }
-    setStatus('Cargando lo de hoy...');
-    apiGet('getEntries', { date: todayISO }).then(function(res){
+    setStatus('Cargando...');
+    apiGet('getEntries', { date: date }).then(function(res){
+      if (date !== viewingDate) return; // el usuario ya cambió de día mientras esto cargaba
       if (res.ok){
         entries = res.entries || [];
         entries.sort(function(a,b){ return String(a.time).localeCompare(String(b.time)); });
         render();
         setStatus('');
       } else {
-        setStatus('No se pudo cargar el registro de hoy: ' + res.error, true);
+        setStatus('No se pudo cargar el registro: ' + res.error, true);
       }
     }).catch(function(err){
       setStatus('No se pudo conectar con el servidor. Revisá CONFIG.SCRIPT_URL.', true);
@@ -504,6 +566,66 @@
       if (res.ok){ setTimeout(localRemove, 180); setStatus(''); }
       else setStatus('No se pudo borrar: ' + res.error, true);
     }).catch(function(){ setStatus('No se pudo borrar (sin conexión).', true); });
+  }
+
+  // ============================================================
+  // Editar una comida ya guardada (hora, tipo o detalle mal cargados).
+  // ============================================================
+  function openEditModal(entry){
+    var mealOptions = MEAL_ORDER.map(function(m){
+      var sel = m === entry.meal ? ' selected' : '';
+      return '<option value="' + m + '"' + sel + '>' + mealIcon(m) + ' ' + m + '</option>';
+    }).join('');
+
+    modalContent.innerHTML =
+      '<div class="icon">✏️</div>' +
+      '<h2>Editar comida</h2>' +
+      '<div class="edit-form">' +
+        '<div>' +
+          '<label class="field-label" for="edit-time">Hora</label>' +
+          '<input type="time" id="edit-time" value="' + entry.time + '">' +
+        '</div>' +
+        '<div>' +
+          '<label class="field-label" for="edit-meal">Tipo</label>' +
+          '<select id="edit-meal">' + mealOptions + '</select>' +
+        '</div>' +
+        '<div>' +
+          '<label class="field-label" for="edit-detail">Detalle</label>' +
+          '<textarea id="edit-detail"></textarea>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-actions">' +
+        '<button type="button" id="cancel-edit-btn">Cancelar</button>' +
+        '<button type="button" class="confirm" id="save-edit-btn">Guardar cambios</button>' +
+      '</div>';
+    document.getElementById('edit-detail').value = entry.detail;
+    overlay.hidden = false;
+    document.getElementById('cancel-edit-btn').addEventListener('click', closeModal);
+    document.getElementById('save-edit-btn').addEventListener('click', function(){ saveEdit(entry.id); });
+  }
+
+  function saveEdit(id){
+    var time = document.getElementById('edit-time').value;
+    var meal = document.getElementById('edit-meal').value;
+    var detail = document.getElementById('edit-detail').value.trim();
+    if (!time || !meal || !detail) return;
+
+    function applyLocal(){
+      entries = entries.map(function(e){
+        return e.id === id ? Object.assign({}, e, { time: time, meal: meal, detail: detail }) : e;
+      });
+      entries.sort(function(a,b){ return String(a.time).localeCompare(String(b.time)); });
+      closeModal();
+      render();
+    }
+
+    if (DEMO_MODE){ applyLocal(); return; }
+
+    setStatus('Guardando cambios...');
+    apiPost('updateEntry', { id: id, time: time, meal: meal, detail: detail }).then(function(res){
+      if (res.ok){ applyLocal(); setStatus(''); }
+      else setStatus('No se pudo guardar el cambio: ' + res.error, true);
+    }).catch(function(){ setStatus('No se pudo guardar (sin conexión).', true); });
   }
 
   // ---- hora por defecto ----
@@ -651,7 +773,7 @@
     setStatus('Guardando...');
     var photoBase64 = pendingPhoto;
     apiPost('addEntry', {
-      date: todayISO,
+      date: viewingDate,
       time: newEntry.time,
       meal: newEntry.meal,
       detail: newEntry.detail,
@@ -683,13 +805,13 @@
   // ============================================================
   function showDayConfirm(){
     if (entries.length === 0){
-      setStatus('Todavía no cargaste ninguna comida hoy.', true);
+      setStatus('Todavía no cargaste ninguna comida.', true);
       return;
     }
     modalContent.innerHTML =
       '<div class="icon">🗓️</div>' +
-      '<h2>¿Diste por terminada la carga de hoy?</h2>' +
-      '<p>Las ' + entries.length + ' comidas de hoy ya están guardadas. Esto no manda ningún mail — para eso usá "Finalizar carga semanal" cuando quieras cerrar la semana.</p>' +
+      '<h2>¿Diste por terminada la carga?</h2>' +
+      '<p>Las ' + entries.length + ' comidas ya están guardadas. Esto no manda ningún mail — para eso usá "Finalizar carga semanal". Si más adelante te das cuenta de un error, podés volver con "Editar otro día" y corregirlo cuando quieras.</p>' +
       '<div class="modal-actions">' +
         '<button type="button" id="cancel-day-btn">Cancelar</button>' +
         '<button type="button" class="confirm" id="confirm-day-btn">Sí, listo por hoy</button>' +
@@ -761,7 +883,7 @@
   document.getElementById('finish-day-btn').addEventListener('click', showDayConfirm);
   document.getElementById('finish-week-btn').addEventListener('click', showWeekConfirm);
 
-  loadToday();
+  loadDate(viewingDate);
 })();
 </script>
 </body>
